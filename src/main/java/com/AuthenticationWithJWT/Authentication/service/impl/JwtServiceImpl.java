@@ -1,7 +1,5 @@
 package com.AuthenticationWithJWT.Authentication.service.impl;
 
-
-
 import com.AuthenticationWithJWT.Authentication.service.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -21,6 +19,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class JwtServiceImpl implements JwtService {
@@ -28,10 +27,6 @@ public class JwtServiceImpl implements JwtService {
     @Value("${application.security.jwt.secret-key}")
     private String secretKey;
 
-    @Value("${application.security.jwt.expiration}")
-    private long jwtExpiration;
-    @Value("${application.security.jwt.refresh-token.expiration}")
-    private long refreshExpiration;
     @Value("${application.security.jwt.cookie-name}")
     private String jwtCookieName;
 
@@ -42,30 +37,28 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("roles", userDetails.getAuthorities().stream()
+                .map(authority -> authority.getAuthority())
+                .collect(Collectors.toList()));
+        return generateToken(claims, userDetails);
     }
 
     @Override
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String userName = extractUserName(token);
-        return (userName.equals(userDetails.getUsername())) && !isTokenExpired(token);
+        return (userName.equals(userDetails.getUsername()));
     }
 
-    private boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
-    }
-    private Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
-    }
     private String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
-        return buildToken(extraClaims, userDetails,jwtExpiration);
+        return buildToken(extraClaims, userDetails);
     }
 
     @Override
     public ResponseCookie generateJwtCookie(String jwt) {
         return ResponseCookie.from(jwtCookieName, jwt)
                 .path("/")
-                .maxAge(24 * 60 * 60) // 24 hours
+                .maxAge(24 * 60 * 60) // 24 hours in seconds
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("Strict")
@@ -91,17 +84,13 @@ public class JwtServiceImpl implements JwtService {
                 .build();
     }
 
-    private String buildToken(
-            Map<String, Object> extraClaims,
-            UserDetails userDetails,
-            long expiration
-    ) {
-        return Jwts
-                .builder()
+    private String buildToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+        long expirationTime = 1000 * 60 * 60 * 24 * 120; // 24 heures
+        return Jwts.builder()
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -110,6 +99,7 @@ public class JwtServiceImpl implements JwtService {
         final Claims claims = extractAllClaims(token);
         return claimsResolvers.apply(claims);
     }
+
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
@@ -117,8 +107,32 @@ public class JwtServiceImpl implements JwtService {
                 .parseClaimsJws(token)
                 .getBody();
     }
+
     private Key getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
+
+    @Override
+    public boolean isTokenCloseToExpiry(String token) {
+        Claims claims = extractAllClaims(token);
+        Date expiryDate = claims.getExpiration();
+        if (expiryDate == null) {
+            // Gérez le cas où la date d'expiration est nulle (peut-être en rejetant le token)
+            return true;
+        }
+        long timeToExpiry = expiryDate.getTime() - System.currentTimeMillis();
+        return timeToExpiry < 5 * 60 * 1000; // 5 minutes avant expiration
+    }
+
+    @Override
+    public String verifyToken(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        return "Roles: " + claims.get("roles");
+    }
+
 }

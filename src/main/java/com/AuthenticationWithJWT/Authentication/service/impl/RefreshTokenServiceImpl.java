@@ -37,6 +37,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     private long refreshExpiration;
     @Value("${application.security.jwt.refresh-token.cookie-name}")
     private String refreshTokenName;
+
     @Override
     public RefreshToken createRefreshToken(Long userId) {
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
@@ -51,11 +52,11 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     @Override
     public RefreshToken verifyExpiration(RefreshToken token) {
-        if(token == null){
+        if (token == null) {
             log.error("Token is null");
             throw new TokenException(null, "Token is null");
         }
-        if(token.getExpiryDate().compareTo(Instant.now()) < 0 ){
+        if (token.getExpiryDate().compareTo(Instant.now()) < 0) {
             refreshTokenRepository.delete(token);
             throw new TokenException(token.getToken(), "Refresh token was expired. Please make a new authentication request");
         }
@@ -72,7 +73,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         User user = refreshTokenRepository.findByToken(request.getRefreshToken())
                 .map(this::verifyExpiration)
                 .map(RefreshToken::getUser)
-                .orElseThrow(() -> new TokenException(request.getRefreshToken(),"Refresh token does not exist"));
+                .orElseThrow(() -> new TokenException(request.getRefreshToken(), "Refresh token does not exist"));
 
         String token = jwtService.generateToken(user);
         return RefreshTokenResponse.builder()
@@ -86,7 +87,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     public ResponseCookie generateRefreshTokenCookie(String token) {
         return ResponseCookie.from(refreshTokenName, token)
                 .path("/")
-                .maxAge(refreshExpiration/1000) // 15 days in seconds
+                .maxAge(refreshExpiration / 1000) // 15 days in seconds
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("Strict")

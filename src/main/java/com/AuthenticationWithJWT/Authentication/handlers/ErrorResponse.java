@@ -14,6 +14,11 @@ public class ErrorResponse {
     private int status;
     private String error;
     private Instant timestamp;
-    private String message="Matricule ou mot de passe incorrect. Veuillez vérifier vos identifiants";
+    private String message;
     private String path;
+
+
+    public ErrorResponse(String message) {
+        this.message = message;
+    }
 }

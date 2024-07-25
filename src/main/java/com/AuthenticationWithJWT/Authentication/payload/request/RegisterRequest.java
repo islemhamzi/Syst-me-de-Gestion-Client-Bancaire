@@ -1,38 +1,28 @@
 package com.AuthenticationWithJWT.Authentication.payload.request;
 
-
 import com.AuthenticationWithJWT.Authentication.enums.Role;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class RegisterRequest {
-
-    private String firstname;
-
-
-    private String lastname;
-
-
-    @Email(message = "Format de l'email invalide")
-    private String email;
-
-    @NotBlank(message = "Le mot de passe est obligatoire")
-    private String password;
-
-    @NotBlank(message = "Le matricule est obligatoire")
     private String matricule;
+    private String email;
+    private String firstname;
+    private String lastname;
+    private String password;
+    private List<Role> role;
+    private String ldapMatricule;  // New field for LDAP matricule
 
-    @NotNull(message = "Le rôle est obligatoire")
-    private Role role;
+    // Existing getters and setters
 
-    private String agence; // Facultatif, peut être défini plus tard ou avoir une valeur par défaut
+    public String getLdapMatricule() {
+        return ldapMatricule;  // Getter for the new field
+    }
+
+    // Optionally add a setter if needed
+    public void setLdapMatricule(String ldapMatricule) {
+        this.ldapMatricule = ldapMatricule;
+    }
 }

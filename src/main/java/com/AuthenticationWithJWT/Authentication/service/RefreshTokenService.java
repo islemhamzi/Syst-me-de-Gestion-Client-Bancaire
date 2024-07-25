@@ -20,4 +20,6 @@ public interface RefreshTokenService {
     String getRefreshTokenFromCookies(HttpServletRequest request);
     void deleteByToken(String token);
     ResponseCookie getCleanRefreshTokenCookie();
+
+
 }

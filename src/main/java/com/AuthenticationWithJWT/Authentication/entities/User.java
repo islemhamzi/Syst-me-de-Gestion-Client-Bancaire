@@ -1,18 +1,20 @@
 package com.AuthenticationWithJWT.Authentication.entities;
 
-
+import com.AuthenticationWithJWT.Authentication.enums.AccountStatus;
 import com.AuthenticationWithJWT.Authentication.enums.Role;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.Instant;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 @Data
 @AllArgsConstructor
@@ -24,31 +26,41 @@ public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @NotBlank(message = "Le prénom est obligatoire")
-    private String firstName;
-    @NotBlank(message = "Le nom de famille est obligatoire")
-    private String lastName;
-    private String agence;
-    @Email(message = "Adresse mail invalide")
-    @NotBlank(message = "L'adresse mail est obligatoire")
-    private String email;
-    @NotBlank(message = "Le matricule est obligatoire")
-    private String matricule;
 
-    @NotBlank(message = "Le mot de passe est obligatoire")
+    @Column(name = "matricule", unique = true, nullable = false)
+    private String matricule; //c'est le matricule ldap
+
+    @Column(name = "email")
+    private String email;
+
+    @Column(name = "first_name")
+    private String firstName;
+
+    @Column(name = "last_name")
+    private String lastName;
+    private String phoneNumber ;
     private String password;
 
+    @Column(name = "roles")
+    private String roles;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "matricule", referencedColumnName = "matricule_ldap", insertable = false, updatable = false)
+    private Evuti evuti;
+
+    @Column(name = "creation_date", updatable = false)
+    private Instant creationDate = Instant.now();
+
     @Enumerated(EnumType.STRING)
-    private Role role;
-
-
-
+    @Column(name = "account_status", nullable = false)
+    private AccountStatus accountStatus = AccountStatus.ACTIVE;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return role.getAuthorities();
+        return Arrays.stream(roles.split(","))
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                .collect(Collectors.toList());
     }
-
     @Override
     public String getPassword() {
         return password;
@@ -76,6 +88,6 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return accountStatus == AccountStatus.ACTIVE;
     }
 }

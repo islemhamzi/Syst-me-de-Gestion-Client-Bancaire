@@ -18,8 +18,9 @@ public class AuthenticationResponse {
     private String firstName;
     private String lastName;
     private String email;
-
+    private String agence;
     private List<String> roles;
+    private List<String> privileges;
 
     @JsonProperty("access_token")
     private String accessToken;
@@ -30,3 +31,4 @@ public class AuthenticationResponse {
     @JsonProperty("token_type")
     private String tokenType;
 }
+
