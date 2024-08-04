@@ -73,6 +73,7 @@ public class SecurityConfiguration {
                 .and()
                 .authorizeRequests(authorize -> authorize
                         .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/v1/activity-logs/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/verify-token").hasAnyRole("ADMIN", "USER", "CHEF_AGENCE", "TFJO")
                         .requestMatchers("/api/v1/user/resource").hasAnyRole("ADMIN", "USER")

@@ -7,26 +7,25 @@ import com.AuthenticationWithJWT.Authentication.entities.User;
 import com.AuthenticationWithJWT.Authentication.repository.DelegationRepository;
 import com.AuthenticationWithJWT.Authentication.repository.DocumentRepository;
 import com.AuthenticationWithJWT.Authentication.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class DelegationService {
-    @Autowired
-    private DelegationRepository delegationRepository;
-    @Autowired
-    private DocumentRepository documentRepository;
-    @Autowired
-    private UserRepository userRepository;
+    private final DelegationRepository delegationRepository;
+    private final DocumentRepository documentRepository;
+    private final UserRepository userRepository;
     private static final Logger logger = LoggerFactory.getLogger(DelegationService.class);
 
-    public void createDelegation(String delegatorUsername, String delegateUsername, LocalDate startDate, LocalDate endDate) {
+    public void createDelegation(String delegatorUsername, String delegateUsername, LocalDate startDate, LocalDate endDate, Long documentId) {
         User delegator = userRepository.findByMatricule(delegatorUsername)
                 .orElseThrow(() -> new IllegalArgumentException("Delegator not found: " + delegatorUsername));
         User delegate = userRepository.findByMatricule(delegateUsername)
@@ -39,30 +38,23 @@ public class DelegationService {
         delegation.setDelegate(delegate);
         delegation.setStartDate(startDate);
         delegation.setEndDate(endDate);
+        delegation.setDocumentId(documentId); // Assurez-vous de bien définir le documentId
         delegationRepository.save(delegation);
     }
+
 
     public List<DocumentDto> getAllDocumentsDelegatedToMe(String username) {
         User user = userRepository.findByMatricule(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
-        logger.debug("User found: {}", user);
 
         LocalDate now = LocalDate.now();
-        logger.debug("Current date: {}", now);
 
         List<Delegation> delegations = delegationRepository.findByDelegateAndStartDateLessThanEqualAndEndDateGreaterThanEqual(user, now, now);
-        logger.debug("Delegations found: {}", delegations);
 
         List<DocumentDto> documentDtos = new ArrayList<>();
         for (Delegation delegation : delegations) {
-            logger.debug("Processing delegation: {}", delegation);
-
             List<Document> documents = documentRepository.findByUser(delegation.getDelegator());
-            logger.debug("Documents found for delegator {}: {}", delegation.getDelegator().getMatricule(), documents);
-
             for (Document document : documents) {
-                logger.debug("Processing document: {}", document);
-
                 DocumentDto dto = new DocumentDto();
                 dto.setIdDocument(document.getIdDocument());
                 dto.setNumeroCompte(document.getNumeroCompte());
@@ -77,11 +69,19 @@ public class DelegationService {
                 dto.setAgenceCode(document.getAgence().getCodeAgence());
                 dto.setAgenceEdition(document.getAgenceEdition().getLibelleAgence());
                 dto.setDelegatorUsername(delegation.getDelegator().getMatricule());
-                dto.setDelegateUsername(delegation.getDelegate().getMatricule());
+                dto.setStartDate(delegation.getStartDate());   // Set start date
+                dto.setEndDate(delegation.getEndDate());       // Set end date
+                dto.setDelegationId(delegation.getId());       // Set delegation ID
                 documentDtos.add(dto);
             }
         }
-        logger.debug("Final DocumentDtos: {}", documentDtos);
         return documentDtos;
     }
+
+    public void deleteDelegationById(Long delegationId) {
+        Delegation delegation = delegationRepository.findById(delegationId).orElseThrow(() -> new IllegalArgumentException("Delegation not found: " + delegationId));
+        delegationRepository.delete(delegation);
+        logger.info("Delegation with ID {} deleted", delegationId);
+    }
+
 }

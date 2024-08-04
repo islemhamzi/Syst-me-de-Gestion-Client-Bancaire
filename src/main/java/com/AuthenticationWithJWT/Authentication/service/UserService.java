@@ -7,19 +7,15 @@ import com.AuthenticationWithJWT.Authentication.enums.AccountStatus;
 import com.AuthenticationWithJWT.Authentication.repository.EvutiRepository;
 import com.AuthenticationWithJWT.Authentication.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Async;
 
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -61,7 +57,7 @@ public class UserService {
             String adminUsername = SecurityContextHolder.getContext().getAuthentication().getName();
             User adminUser = userRepository.findByMatricule(adminUsername).orElseThrow(() -> new Exception("Admin not found"));
             activityLogService.logActivity(
-                    String.format("Admin %s %s a mis à jour les rôles de %s %s de [%s] à [%s] à la date %s dont son adresse IP %s",
+                    String.format("L'administrateur %s %s a mis à jour les rôles de %s %s de [%s] à [%s] à la date %s dont son adresse IP %s",
                             adminUser.getFirstName(), adminUser.getLastName(), user.getFirstName(), user.getLastName(), oldRoles, String.join(",", roleNames), Instant.now().toString(), "127.0.0.1"),
                     adminUser.getFirstName() + " " + adminUser.getLastName(), "ADMIN", "127.0.0.1"
             );
@@ -76,7 +72,6 @@ public class UserService {
             throw new Exception("User not found with matriculeLdap: " + matriculeLdap);
         }
     }
-
 
     public void updateUserStatus(String matriculeLdap, String status) throws Exception {
         Optional<User> optionalUser = userRepository.findByMatricule(matriculeLdap);
@@ -105,6 +100,7 @@ public class UserService {
             throw new Exception("User not found with matriculeLdap: " + matriculeLdap);
         }
     }
+
     public String getCodeAgenceByMatricule(String matricule) {
         logger.info("Fetching agence for user with matricule: {}", matricule);
         Evuti evuti = evutiRepository.findByMatriculeLdap(matricule)
@@ -114,5 +110,9 @@ public class UserService {
         return codeAgence;
     }
 
-
+    public String getUserRole(String matricule) {
+        User user = userRepository.findByMatricule(matricule)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        return user.getRoles();
+    }
 }

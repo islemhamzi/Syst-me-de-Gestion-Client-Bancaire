@@ -17,7 +17,8 @@ public class DocumentDto {
     private String agenceCode;
     private String agenceEdition;
     private String userEmail;
-    private String delegatorUsername;  // Add this field
-    private String delegateUsername;
-
+    private String delegatorUsername;
+    private LocalDate startDate;
+    private LocalDate endDate;
+    private Long delegationId;
 }
