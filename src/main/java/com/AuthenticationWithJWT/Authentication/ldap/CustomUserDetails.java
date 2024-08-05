@@ -17,6 +17,12 @@ public class CustomUserDetails extends User {
         this.email = email;
     }
 
+<<<<<<< HEAD
 }
 
 
+=======
+    // Ajoutez d'autres méthodes si nécessaire
+}
+
+>>>>>>> 127952bcb37bdb6e9c0530f89c2bcc37c1e23762
